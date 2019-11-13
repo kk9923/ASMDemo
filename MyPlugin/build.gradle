@@ -1,0 +1,23 @@
+apply plugin: 'groovy'
+apply plugin: 'maven'
+dependencies {
+    compile gradleApi()//在使用自定义插件时候，一定要引用org.gradle.api.Plugin
+    compile 'com.android.tools.build:gradle:3.2.1'//使用自定义transform时候，需要引用com.android.build.api.transform.Transform
+    compile 'org.ow2.asm:asm:6.0'
+    compile 'commons-io:commons-io:2.6'
+}
+version='0.0.1'
+group='com.kx.plugin'
+uploadArchives {
+    repositories {
+        mavenDeployer {
+          //  pom.artifactId = 'myplugin'
+            repository(url: uri('../repo'))
+        }
+    }
+}
+repositories {
+    mavenCentral()
+    jcenter()
+    google()
+}
