@@ -1,5 +1,5 @@
 apply plugin: 'com.android.application'
-apply plugin: com.kx.plugin.Plugin
+apply plugin: 'com.xk.plugin'
 android {
     compileSdkVersion 28
     defaultConfig {
