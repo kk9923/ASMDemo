@@ -1,17 +1,27 @@
 package com.kx.asm;
 
+import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
-
 public class MainActivity extends AppCompatActivity {
-
-    private String A = "A";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        show();
+    }
+    private void show(){
+        System.out.println("show");
+    }
 
+    public void onResume() {
+        SystemClock.sleep(3000);
+        super.onResume();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
     }
 }

@@ -25,7 +25,6 @@ import java.util.jar.JarOutputStream
 import java.util.zip.ZipEntry
 
 import static org.objectweb.asm.ClassReader.EXPAND_FRAMES
-import static org.objectweb.asm.ClassReader.EXPAND_FRAMES
 
 class MyTransform extends Transform {
 
@@ -57,8 +56,9 @@ class MyTransform extends Transform {
         def startTime = System.currentTimeMillis()
         Collection<TransformInput> inputs = transformInvocation.inputs
         TransformOutputProvider outputProvider = transformInvocation.outputProvider
+        boolean isIncremental = transformInvocation.isIncremental()
         //删除之前的输出
-        if (outputProvider != null)
+        if (outputProvider != null && isIncremental)
             outputProvider.deleteAll()
         //遍历inputs
         inputs.each { TransformInput input ->
@@ -89,7 +89,7 @@ class MyTransform extends Transform {
                 println '----------- deal with "class" file <' + name + '> -----------'
                 if (checkClassFile(name)) {
                     ClassReader classReader = new ClassReader(file.bytes)
-                    ClassWriter classWriter = new ClassWriter(classReader, ClassWriter.COMPUTE_MAXS)
+                    ClassWriter classWriter = new ClassWriter(ClassWriter.COMPUTE_MAXS)
                     ClassVisitor cv = new TimeClassVisitor(classWriter)
                     classReader.accept(cv, EXPAND_FRAMES)
                     byte[] code = classWriter.toByteArray()
@@ -167,7 +167,8 @@ class MyTransform extends Transform {
     static boolean checkClassFile(String name) {
         //只处理需要的class文件
         return (name.endsWith(".class") && !name.startsWith("R\$")
-                && !"R.class".equals(name) && !"BuildConfig.class".equals(name)
-                && "android/support/v4/app/FragmentActivity.class".equals(name))
+                && "R.class" != name && "BuildConfig.class" != name
+             //   &&  name.startsWith("com/kx/asm")
+        )
     }
 }
