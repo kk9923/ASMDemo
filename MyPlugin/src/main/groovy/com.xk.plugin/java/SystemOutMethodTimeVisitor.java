@@ -5,12 +5,12 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.AdviceAdapter;
 
-public class OnCreateMethodVisitor extends AdviceAdapter {
+public class SystemOutMethodTimeVisitor extends AdviceAdapter {
 
     private String methodName;
     private String mClassName;
 
-    public OnCreateMethodVisitor(MethodVisitor mv, int access, String name, String desc, String mClassName) {
+    public SystemOutMethodTimeVisitor(MethodVisitor mv, int access, String name, String desc, String mClassName) {
         super(Opcodes.ASM4, mv, access, name, desc);
         this.methodName = name;
         this.mClassName = mClassName;
@@ -23,7 +23,6 @@ public class OnCreateMethodVisitor extends AdviceAdapter {
         timeLocalIndex = newLocal(Type.LONG_TYPE);
         mv.visitMethodInsn(INVOKESTATIC, "java/lang/System", "currentTimeMillis", "()J", false);
         mv.visitVarInsn(LSTORE, timeLocalIndex);
-
     }
 
     @Override
@@ -39,7 +38,6 @@ public class OnCreateMethodVisitor extends AdviceAdapter {
         mv.visitInsn(DUP);
         mv.visitMethodInsn(INVOKESPECIAL, "java/lang/StringBuilder", "<init>", "()V", false);
         mv.visitLdcInsn(" MethodTime " + "" + methodName + "() is ");
-//        mv.visitLdcInsn("ClassName = " + mClassName + "   MethodTime " + "" + methodName + "() is ");
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(Ljava/lang/String;)Ljava/lang/StringBuilder;", false);
         mv.visitVarInsn(LLOAD, durationId);
         mv.visitMethodInsn(INVOKEVIRTUAL, "java/lang/StringBuilder", "append", "(J)Ljava/lang/StringBuilder;", false);

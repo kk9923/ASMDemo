@@ -6,7 +6,6 @@ import com.android.build.api.transform.Format
 import com.android.build.api.transform.JarInput
 import com.android.build.api.transform.QualifiedContent
 import com.android.build.api.transform.Transform
-import com.android.build.api.transform.TransformException
 import com.android.build.api.transform.TransformInput
 import com.android.build.api.transform.TransformInvocation
 import com.android.build.api.transform.TransformOutputProvider
@@ -18,6 +17,12 @@ import org.apache.commons.io.IOUtils
 import org.objectweb.asm.ClassReader
 import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.ClassWriter
+import org.objectweb.asm.Opcodes
+import org.objectweb.asm.tree.AbstractInsnNode
+import org.objectweb.asm.tree.ClassNode
+import org.objectweb.asm.tree.InsnList
+import org.objectweb.asm.tree.MethodInsnNode
+import org.objectweb.asm.tree.MethodNode
 
 import java.util.jar.JarEntry
 import java.util.jar.JarFile
@@ -88,11 +93,13 @@ class MyTransform extends Transform {
                 def name = file.name
                 println '----------- deal with "class" file <' + name + '> -----------'
                 if (checkClassFile(name)) {
+                    //  ASM  基于事件形式  类似解析XML的SAX 逐步解析
                     ClassReader classReader = new ClassReader(file.bytes)
                     ClassWriter classWriter = new ClassWriter(ClassWriter.COMPUTE_MAXS)
                     ClassVisitor cv = new TimeClassVisitor(classWriter)
                     classReader.accept(cv, EXPAND_FRAMES)
-                    byte[] code = classWriter.toByteArray()
+                    //  ASM  基于对象形式   类似解析XML的DOM  全部加载到内存中解析后创建对象
+                    byte[] code = modifyClass(classWriter.toByteArray())
                     FileOutputStream fos = new FileOutputStream(
                             file.parentFile.absolutePath + File.separator + name)
                     fos.write(code)
@@ -105,6 +112,39 @@ class MyTransform extends Transform {
                 directoryInput.contentTypes, directoryInput.scopes,
                 Format.DIRECTORY)
         FileUtils.copyDirectory(directoryInput.file, dest)
+    }
+
+    static byte[] modifyClass(byte[] bytes) {
+        ClassNode classNode = new ClassNode(Opcodes.ASM5)
+        ClassReader classReader = new ClassReader(bytes)
+        //1 将读入的字节转为classNode
+        classReader.accept(classNode, 0)
+        //2 对classNode的处理逻辑
+        Iterator<MethodNode> iterator = classNode.methods.iterator()
+        while (iterator.hasNext()) {
+            MethodNode node = iterator.next()
+            //  删除 相应的方法
+            if (node.name.startsWith("show")) {
+                  iterator.remove()
+            }
+            InsnList lInsnList = node.instructions
+            AbstractInsnNode[] nodes = lInsnList.toArray()
+            Iterator<AbstractInsnNode> iterators = nodes.iterator()
+            while (iterators.hasNext()) {
+                AbstractInsnNode abstractInsnNode = iterators.next()
+                if (abstractInsnNode != null && abstractInsnNode instanceof MethodInsnNode) {
+                    MethodInsnNode methodInsnNode = abstractInsnNode
+                    //  删除 相应方法调用的地方,避免报错
+                    if (methodInsnNode.name.startsWith("show")) {
+                        lInsnList.remove(methodInsnNode)
+                    }
+                }
+            }
+        }
+        ClassWriter classWriter = new ClassWriter(ClassWriter.COMPUTE_MAXS)
+        //3  将classNode转为字节数组
+        classNode.accept(classWriter)
+        return classWriter.toByteArray()
     }
 
     /**
@@ -168,7 +208,7 @@ class MyTransform extends Transform {
         //只处理需要的class文件
         return (name.endsWith(".class") && !name.startsWith("R\$")
                 && "R.class" != name && "BuildConfig.class" != name
-             //   &&  name.startsWith("com/kx/asm")
+                //   &&  name.startsWith("com/kx/asm")
         )
     }
 }
